@@ -2,10 +2,7 @@ Port 22 ssh - OpenSSH 8.2p1
 Port 80 http - nginx 1.18.0 Ubuntu - http://photobomb.htb
 
 possible username - Jameson
-
-
-
-username and password when ‘view page source’ on the main page photo
+	username and password when ‘view page source’ on the main page photo
 
 nikto -h http://10.10.11.182
 
@@ -30,9 +27,7 @@ cat user.txt
 		
 sudo -l
 
-
 cat /opt/cleanup.sh
-
 
 try to change the PATH to get root
 
